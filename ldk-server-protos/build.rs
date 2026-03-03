@@ -40,7 +40,8 @@ fn generate_protos() {
 			".",
 			"#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]",
 		)
-		.type_attribute(".", "#[cfg_attr(feature = \"serde\", serde(rename_all = \"snake_case\"))]")
+		.message_attribute(".", "#[cfg_attr(feature = \"serde\", serde(rename_all = \"snake_case\"))]")
+		.enum_attribute(".", "#[cfg_attr(feature = \"serde\", serde(rename_all = \"SCREAMING_SNAKE_CASE\"))]")
 		.field_attribute(
 			"types.Bolt11.secret",
 			"#[cfg_attr(feature = \"serde\", serde(serialize_with = \"crate::serde_utils::serialize_opt_bytes_hex\"))]",
@@ -56,18 +57,6 @@ fn generate_protos() {
 		.field_attribute(
 			"types.Bolt12Refund.secret",
 			"#[cfg_attr(feature = \"serde\", serde(serialize_with = \"crate::serde_utils::serialize_opt_bytes_hex\"))]",
-		)
-		.field_attribute(
-			"types.Payment.direction",
-			"#[cfg_attr(feature = \"serde\", serde(serialize_with = \"crate::serde_utils::serialize_payment_direction\"))]",
-		)
-		.field_attribute(
-			"types.Payment.status",
-			"#[cfg_attr(feature = \"serde\", serde(serialize_with = \"crate::serde_utils::serialize_payment_status\"))]",
-		)
-		.field_attribute(
-			"types.ClaimableAwaitingConfirmations.source",
-			"#[cfg_attr(feature = \"serde\", serde(serialize_with = \"crate::serde_utils::serialize_balance_source\"))]",
 		)
 		.compile_protos(
 			&[

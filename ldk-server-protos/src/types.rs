@@ -31,17 +31,9 @@ pub struct Payment {
 	pub fee_paid_msat: ::core::option::Option<u64>,
 	/// The direction of the payment.
 	#[prost(enumeration = "PaymentDirection", tag = "4")]
-	#[cfg_attr(
-		feature = "serde",
-		serde(serialize_with = "crate::serde_utils::serialize_payment_direction")
-	)]
 	pub direction: i32,
 	/// The status of the payment.
 	#[prost(enumeration = "PaymentStatus", tag = "5")]
-	#[cfg_attr(
-		feature = "serde",
-		serde(serialize_with = "crate::serde_utils::serialize_payment_status")
-	)]
 	pub status: i32,
 	/// The timestamp, in seconds since start of the UNIX epoch, when this entry was last updated.
 	#[prost(uint64, tag = "6")]
@@ -58,7 +50,7 @@ pub struct PaymentKind {
 /// Nested message and enum types in `PaymentKind`.
 pub mod payment_kind {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum Kind {
@@ -100,7 +92,7 @@ pub struct ConfirmationStatus {
 /// Nested message and enum types in `ConfirmationStatus`.
 pub mod confirmation_status {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum Status {
@@ -514,7 +506,7 @@ pub mod channel_config {
 	/// our own fee estimate.
 	/// See more: <https://docs.rs/lightning/latest/lightning/util/config/struct.ChannelConfig.html#structfield.max_dust_htlc_exposure>
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum MaxDustHtlcExposure {
@@ -565,7 +557,7 @@ pub struct LightningBalance {
 /// Nested message and enum types in `LightningBalance`.
 pub mod lightning_balance {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum BalanceType {
@@ -663,10 +655,6 @@ pub struct ClaimableAwaitingConfirmations {
 	pub confirmation_height: u32,
 	/// Whether this balance is a result of cooperative close, a force-close, or an HTLC.
 	#[prost(enumeration = "BalanceSource", tag = "5")]
-	#[cfg_attr(
-		feature = "serde",
-		serde(serialize_with = "crate::serde_utils::serialize_balance_source")
-	)]
 	pub source: i32,
 }
 /// The channel has been closed, and the given balance should be ours but awaiting spending transaction confirmation.
@@ -788,7 +776,7 @@ pub struct PendingSweepBalance {
 /// Nested message and enum types in `PendingSweepBalance`.
 pub mod pending_sweep_balance {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum BalanceType {
@@ -881,7 +869,7 @@ pub struct Bolt11InvoiceDescription {
 /// Nested message and enum types in `Bolt11InvoiceDescription`.
 pub mod bolt11_invoice_description {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum Kind {
@@ -918,7 +906,7 @@ pub struct RouteParametersConfig {
 }
 /// Represents the direction of a payment.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum PaymentDirection {
@@ -949,7 +937,7 @@ impl PaymentDirection {
 }
 /// Represents the current status of a payment.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum PaymentStatus {
@@ -982,11 +970,10 @@ impl PaymentStatus {
 		}
 	}
 }
-
 /// Indicates whether the balance is derived from a cooperative close, a force-close (for holder or counterparty),
 /// or whether it is for an HTLC.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum BalanceSource {
@@ -999,7 +986,6 @@ pub enum BalanceSource {
 	/// This balance is the result of an HTLC.
 	Htlc = 3,
 }
-
 impl BalanceSource {
 	/// String value of the enum field names used in the ProtoBuf definition.
 	///

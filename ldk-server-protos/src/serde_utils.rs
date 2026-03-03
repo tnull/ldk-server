@@ -17,27 +17,6 @@ use std::fmt::Write;
 
 use serde::Serializer;
 
-/// Generates a serde serializer that converts an `i32` proto enum field to its
-/// string name via `from_i32()` and `as_str_name()`.
-macro_rules! stringify_enum_serializer {
-	($fn_name:ident, $enum_type:ty) => {
-		pub fn $fn_name<S>(value: &i32, serializer: S) -> Result<S::Ok, S::Error>
-		where
-			S: serde::Serializer,
-		{
-			let name = match <$enum_type>::from_i32(*value) {
-				Some(v) => v.as_str_name(),
-				None => "UNKNOWN",
-			};
-			serializer.serialize_str(name)
-		}
-	};
-}
-
-stringify_enum_serializer!(serialize_payment_direction, crate::types::PaymentDirection);
-stringify_enum_serializer!(serialize_payment_status, crate::types::PaymentStatus);
-stringify_enum_serializer!(serialize_balance_source, crate::types::BalanceSource);
-
 /// Serializes `Option<prost::bytes::Bytes>` as a hex string (or null).
 pub fn serialize_opt_bytes_hex<S>(
 	value: &Option<bytes::Bytes>, serializer: S,

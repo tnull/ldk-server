@@ -19,7 +19,7 @@ pub struct EventEnvelope {
 /// Nested message and enum types in `EventEnvelope`.
 pub mod event_envelope {
 	#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-	#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+	#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 	#[allow(clippy::derive_partial_eq_without_eq)]
 	#[derive(Clone, PartialEq, ::prost::Oneof)]
 	pub enum Event {
