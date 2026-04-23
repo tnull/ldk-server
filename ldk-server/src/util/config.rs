@@ -55,6 +55,8 @@ pub struct Config {
 	pub lsps2_service_config: Option<LSPS2ServiceConfig>,
 	pub log_level: LevelFilter,
 	pub log_file_path: Option<String>,
+	#[cfg_attr(not(feature = "privacy-filter"), allow(dead_code))]
+	pub log_sanitizer: Option<LogSanitizerConfig>,
 	pub pathfinding_scores_source_url: Option<String>,
 	pub metrics_enabled: bool,
 	pub poll_metrics_interval: Option<u64>,
@@ -68,6 +70,44 @@ pub struct LSPSClientConfig {
 	pub node_id: PublicKey,
 	pub address: SocketAddress,
 	pub token: Option<String>,
+}
+
+/// Selection of which sanitizer implementation to apply to log output.
+///
+/// Only populated when the `privacy-filter` Cargo feature is enabled. Referenced from
+/// the `[log.sanitizer]` TOML section.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LogSanitizerKind {
+	/// Use `log_sanitizer::RegexSanitizer::lightning_defaults()` synchronously.
+	Regex,
+	/// Use `log_sanitizer::OnnxSanitizer` via the async adapter, loaded from
+	/// `model_dir`. Falls back to the regex sanitizer on queue overflow unless
+	/// [`LogSanitizerOnOverflow`] is set to something else.
+	Onnx,
+}
+
+/// Action when the ONNX sanitizer's bounded queue fills up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogSanitizerOnOverflow {
+	/// Drop the record and increment an internal counter.
+	Drop,
+	/// Fall back to the regex sanitizer synchronously. Recommended default.
+	FallbackRegex,
+	/// Block the caller (dangerous in tokio contexts; usually not what you want).
+	Block,
+}
+
+/// Parsed `[log.sanitizer]` configuration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LogSanitizerConfig {
+	pub kind: LogSanitizerKind,
+	/// Directory holding `tokenizer.json`, `config.json`, and the `onnx/` subdirectory.
+	/// Required when `kind = Onnx`.
+	pub model_dir: Option<String>,
+	/// Skip sanitizing records more verbose than this level.
+	pub min_level: LevelFilter,
+	/// Overflow behaviour for the ONNX queue. Ignored when `kind = Regex`.
+	pub on_overflow: LogSanitizerOnOverflow,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,6 +148,7 @@ struct ConfigBuilder {
 	lsps2: Option<LiquidityConfig>,
 	log_level: Option<String>,
 	log_file_path: Option<String>,
+	log_sanitizer: Option<LogSanitizerConfig>,
 	pathfinding_scores_source_url: Option<String>,
 	metrics_enabled: Option<bool>,
 	poll_metrics_interval: Option<u64>,
@@ -155,6 +196,9 @@ impl ConfigBuilder {
 		if let Some(log) = toml.log {
 			self.log_level = log.level.or(self.log_level.clone());
 			self.log_file_path = log.file.or(self.log_file_path.clone());
+			if let Some(sanitizer) = log.sanitizer {
+				self.log_sanitizer = Some(sanitizer_from_toml(sanitizer));
+			}
 		}
 
 		if let Some(liquidity) = toml.liquidity {
@@ -416,6 +460,7 @@ impl ConfigBuilder {
 			lsps2_service_config,
 			log_level,
 			log_file_path: self.log_file_path,
+			log_sanitizer: self.log_sanitizer,
 			pathfinding_scores_source_url,
 			metrics_enabled,
 			poll_metrics_interval,
@@ -483,6 +528,43 @@ struct EsploraConfig {
 struct LogConfig {
 	level: Option<String>,
 	file: Option<String>,
+	sanitizer: Option<TomlLogSanitizerConfig>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct TomlLogSanitizerConfig {
+	/// `"regex"` or `"onnx"`. Required.
+	kind: String,
+	/// Path to the `privacy-filter` model directory. Required when `kind = "onnx"`.
+	model_dir: Option<String>,
+	/// Skip sanitizing records more verbose than this level (case-insensitive string:
+	/// `"error"`, `"warn"`, `"info"`, `"debug"`, `"trace"`). Defaults to `"info"`.
+	min_level: Option<String>,
+	/// For `kind = "onnx"`: overflow policy. One of `"drop"`, `"fallback-regex"`, or
+	/// `"block"`. Defaults to `"fallback-regex"`.
+	on_overflow: Option<String>,
+}
+
+fn sanitizer_from_toml(toml: TomlLogSanitizerConfig) -> LogSanitizerConfig {
+	// Intentionally lenient: unknown `kind` values are rejected later in `build()`
+	// rather than here, so config errors surface alongside other startup errors. This
+	// helper is parse-only.
+	let kind = match toml.kind.as_str() {
+		"onnx" => LogSanitizerKind::Onnx,
+		// Default to regex for any other value; build() validates.
+		_ => LogSanitizerKind::Regex,
+	};
+	let min_level = toml
+		.min_level
+		.as_deref()
+		.and_then(|s| LevelFilter::from_str(s).ok())
+		.unwrap_or(LevelFilter::Info);
+	let on_overflow = match toml.on_overflow.as_deref() {
+		Some("drop") => LogSanitizerOnOverflow::Drop,
+		Some("block") => LogSanitizerOnOverflow::Block,
+		_ => LogSanitizerOnOverflow::FallbackRegex,
+	};
+	LogSanitizerConfig { kind, model_dir: toml.model_dir, min_level, on_overflow }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -928,6 +1010,7 @@ mod tests {
 			}),
 			log_level: LevelFilter::Trace,
 			log_file_path: Some("/var/log/ldk-server.log".to_string()),
+			log_sanitizer: None,
 			pathfinding_scores_source_url: None,
 			metrics_enabled: false,
 			poll_metrics_interval: None,
@@ -1235,6 +1318,7 @@ mod tests {
 			lsps2_service_config: None,
 			log_level: LevelFilter::Trace,
 			log_file_path: Some("/var/log/ldk-server.log".to_string()),
+			log_sanitizer: None,
 			pathfinding_scores_source_url: Some("https://example.com/".to_string()),
 			metrics_enabled: false,
 			poll_metrics_interval: None,
@@ -1342,6 +1426,7 @@ mod tests {
 			}),
 			log_level: LevelFilter::Trace,
 			log_file_path: Some("/var/log/ldk-server.log".to_string()),
+			log_sanitizer: None,
 			pathfinding_scores_source_url: Some("https://example.com/".to_string()),
 			metrics_enabled: false,
 			poll_metrics_interval: None,

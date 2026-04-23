@@ -36,32 +36,41 @@ pub struct ServerLogger {
 }
 
 impl ServerLogger {
-	/// Initializes the global logger with the specified level and file path.
+	/// Build a logger without installing it as the global `log` sink.
 	///
 	/// Opens or creates the log file at the given path. If the file exists, logs are appended.
 	/// If the file doesn't exist, it will be created along with any necessary parent directories.
 	///
-	/// This should be called once at application startup. Subsequent calls will fail.
+	/// Used when the caller intends to wrap this logger (e.g. in a sanitizing adapter)
+	/// before registration. Pair with [`ServerLogger::install`].
 	///
 	/// Returns an Arc to the logger for signal handling purposes.
-	pub fn init(level: LevelFilter, log_file_path: &Path) -> Result<Arc<Self>, io::Error> {
-		// Create parent directories if they don't exist
+	pub fn build(level: LevelFilter, log_file_path: &Path) -> Result<Arc<Self>, io::Error> {
 		if let Some(parent) = log_file_path.parent() {
 			fs::create_dir_all(parent)?;
 		}
-
 		let file = open_log_file(log_file_path)?;
-
-		let logger = Arc::new(ServerLogger {
+		Ok(Arc::new(ServerLogger {
 			level,
 			file: Mutex::new(file),
 			log_file_path: log_file_path.to_path_buf(),
-		});
+		}))
+	}
 
-		log::set_boxed_logger(Box::new(LoggerWrapper(Arc::clone(&logger))))
-			.map_err(io::Error::other)?;
+	/// Register an already-wrapped `Log` implementation as the global sink, using the
+	/// level of the underlying logger as the max level.
+	pub fn install(logger: Arc<Self>, boxed: Box<dyn Log + Send + Sync>) -> Result<(), io::Error> {
+		let level = logger.level;
+		log::set_boxed_logger(boxed).map_err(io::Error::other)?;
 		log::set_max_level(level);
-		Ok(logger)
+		Ok(())
+	}
+
+	/// Wrap `self` in the internal `LoggerWrapper` newtype to obtain a `Box<dyn Log>`
+	/// ready for `set_boxed_logger` — or for further wrapping by a sanitizer.
+	#[cfg_attr(not(feature = "privacy-filter"), allow(dead_code))]
+	pub fn as_boxed_log(self: Arc<Self>) -> Box<dyn Log + Send + Sync> {
+		Box::new(LoggerWrapper(self))
 	}
 
 	/// Reopens the log file. Called on SIGHUP for log rotation.

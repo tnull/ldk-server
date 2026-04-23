@@ -24,11 +24,18 @@ log = "0.4.28"
 base64 = { version = "0.21", default-features = false, features = ["std"] }
 clap = { version = "4.0.5", default-features = false, features = ["derive", "std", "error-context", "suggestions", "help", "env"] }
 
+log-sanitizer = { path = "../../log-sanitizer", optional = true, features = ["regex", "onnx"] }
+
 [features]
 default = []
 
 # Experimental Features.
 experimental-lsps2-support = []
+
+# Log sanitization via the `log-sanitizer` crate. Enables the `[log.sanitizer]` config
+# section. When disabled (default) no new dependencies are pulled and the config section
+# is rejected at startup.
+privacy-filter = ["dep:log-sanitizer"]
 
 [dev-dependencies]
 futures-util = "0.3.31"

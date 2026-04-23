@@ -121,13 +121,20 @@ fn main() {
 		std::process::exit(-1);
 	}
 
-	let logger = match ServerLogger::init(config_file.log_level, &log_file_path) {
+	let logger = match ServerLogger::build(config_file.log_level, &log_file_path) {
 		Ok(logger) => logger,
 		Err(e) => {
-			eprintln!("Failed to initialize logger: {e}");
+			eprintln!("Failed to build logger: {e}");
 			std::process::exit(-1);
 		},
 	};
+	if let Err(e) = crate::util::log_sanitize_setup::install_sanitizer(
+		std::sync::Arc::clone(&logger),
+		config_file.log_sanitizer.as_ref(),
+	) {
+		eprintln!("Failed to install logger: {e}");
+		std::process::exit(-1);
+	}
 
 	let api_key = match load_or_generate_api_key(&network_dir) {
 		Ok(key) => key,
